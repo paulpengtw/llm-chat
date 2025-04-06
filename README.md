@@ -28,7 +28,15 @@
 
 ## 配置
 
-使用conda环境配置相应依赖包：
+使用 uv 安装相应依赖包：
+
+```bash
+# 如果没有安装 uv，先安装 uv
+pip install uv
+
+# 使用 uv 安装依赖
+uv pip install openai
+```
 
 ```
 pip install openai
@@ -40,6 +48,11 @@ pip install openai
 
 也可以采用类似的API管理项目One API https://github.com/songquanpeng/one-api 实现统一的接口调用。
 
+## Configuration
+1. Create a copy of `llm_client.py.example` (if exists) to `llm_client.py`
+2. Add your API keys and endpoints in `llm_client.py`
+3. Configure your preferred models in `player_configs` within `game.py` or `multi_game_runner.py`
+
 ## 使用方法
 
 ### 运行
@@ -48,6 +61,11 @@ pip install openai
 
 运行单局游戏：
 ```
+```bash
+# For uv users
+uv pip run python game.py
+
+# For pip users
 python game.py
 ```
 

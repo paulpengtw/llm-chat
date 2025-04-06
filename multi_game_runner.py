@@ -27,14 +27,14 @@ class MultiGameRunner:
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(
-        description='运行多局AI对战游戏',
+        description='运行多局 AI 对战游戏',
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
         '-n', '--num-games',
         type=int,
         default=10,
-        help='要运行的游戏局数 (默认: 10)'
+        help='要运行的游戏局数 (默认：10)'
     )
     return parser.parse_args()
 
@@ -42,12 +42,24 @@ if __name__ == '__main__':
     # 解析命令行参数
     args = parse_arguments()
     
-    # 配置玩家信息, 其中model为你通过API调用的模型名称
+    # 配置玩家信息，其中 model 为你通过 API 调用的模型名称
     player_configs = [
-        {"name": "DeepSeek", "model": "deepseek-r1"},
-        {"name": "ChatGPT", "model": "o3-mini"},
-        {"name": "Claude", "model": "claude-3.7-sonnet"},
-        {"name": "Gemini", "model": "gemini-2.0-flash-thinking"}
+        {
+            "name": "r",
+            "model": "r1-1776"
+        },
+        {
+            "name": "g",
+            "model": "o3-mini"
+        }
+        # ,{
+        #     "name": "Claude",
+        #     "model": "claude-3.7-sonnet"
+        # },
+        # {
+        #     "name": "Gemini",
+        #     "model": "gemini-2.0-flash-thinking"
+        # }
     ]
     
     # 创建并运行多局游戏

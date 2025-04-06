@@ -400,21 +400,21 @@ if __name__ == '__main__':
     # 配置玩家信息, 其中model为你通过API调用的模型名称
     player_configs = [
         {
-            "name": "DeepSeek",
-            "model": "deepseek-r1"
+            "name": "r",
+            "model": "r1-1776"
         },
         {
-            "name": "ChatGPT",
+            "name": "g",
             "model": "o3-mini"
-        },
-        {
-            "name": "Claude",
-            "model": "claude-3.7-sonnet"
-        },
-        {
-            "name": "Gemini",
-            "model": "gemini-2.0-flash-thinking"
         }
+        # ,{
+        #     "name": "Claude",
+        #     "model": "claude-3.7-sonnet"
+        # },
+        # {
+        #     "name": "Gemini",
+        #     "model": "gemini-2.0-flash-thinking"
+        # }
     ]
 
     print("游戏开始！玩家配置如下：")
