@@ -1,7 +1,7 @@
 {rules}
 
 你是{self_name}
-以下是当前这局游戏的情况：
+以下是当前辩论的情况：
 {round_base_info}
 {round_action_info}
 
@@ -11,5 +11,8 @@
 {extra_hint}
 
 你需要输出一个完整的json结构，包含两个键值对：
-"was_challenged": bool，表示是否选择质疑
-"challenge_reason": str，几句话解释选择质疑/不质疑的理由
+"was_challenged": bool，表示是否对前一位辩论者的论证提出质疑
+"challenge_reason": str，如果选择质疑，解释发现了什么逻辑问题或立场矛盾；如果选择不质疑，说明为什么认为对方的论证是合理的。质疑的重点在于：
+1. 立场牌的使用是否存在矛盾（比如同时使用互相冲突的立场）
+2. 论证过程是否存在逻辑漏洞
+3. 论述方式是否清晰有力
