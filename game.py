@@ -425,19 +425,19 @@ if __name__ == '__main__':
     # 配置玩家信息, 其中model为你通过API调用的模型名称
     player_configs = [
         {
-            "name": "1",
+            "name": "Hearts",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "2",
+            "name": "Spades",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "3",
+            "name": "Diamonds",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "4",
+            "name": "Clubs",
             "model": "openai/gpt-4o-mini"
         }
     ]
@@ -445,19 +445,19 @@ if __name__ == '__main__':
     # Configure judge LLMs
     judge_configs = [
         {
-            "name": "Judge-1",
+            "name": "Justice",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "Judge-2",
+            "name": "Wisdom",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "Judge-3",
+            "name": "Truth",
             "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "Judge-4",
+            "name": "Honor",
             "model": "openai/gpt-4o-mini"
         }
     ]

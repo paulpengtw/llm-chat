@@ -27,8 +27,8 @@ IMPORTANT: Your response must be in the following JSON format:
 
 Example response:
 {
-    "voted_player": "Player1",
-    "reasoning": "Player1 demonstrated excellent strategic thinking by...",
+    "voted_player": "Hearts",
+    "reasoning": "Hearts demonstrated excellent strategic thinking by...",
     "performance_metrics": {
         "strategic_thinking": 8,
         "challenge_accuracy": 7,
