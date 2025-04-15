@@ -80,10 +80,16 @@ Each component is modular and serves a specific purpose in the overall game syst
 
 ## 配置
 
-使用conda环境配置相应依赖包：
+推荐使用 uv 作为包管理工具:
 
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-pip install openai
+
+安装依赖包：
+
+```bash
+uv pip install openai python-dotenv
 ```
 
 本项目的API配置在`llm_client.py`中。

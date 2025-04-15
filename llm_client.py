@@ -1,6 +1,14 @@
 from openai import OpenAI
-API_BASE_URL = "YOUR_API_BASE_URL"
-API_KEY = "YOUR_API_KEY"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+API_BASE_URL = os.getenv("API_BASE_URL")
+API_KEY = os.getenv("API_KEY")
+
+if not API_BASE_URL or not API_KEY:
+    raise ValueError("Missing required environment variables. Please check your .env file.")
 
 class LLMClient:
     def __init__(self, api_key=API_KEY, base_url=API_BASE_URL):
