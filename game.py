@@ -2,9 +2,10 @@ import random
 from typing import List, Optional, Dict
 from player import Player
 from game_record import GameRecord, PlayerInitialState
+from judge_panel import JudgePanel
 
 class Game:
-    def __init__(self, player_configs: List[Dict[str, str]]) -> None:
+    def __init__(self, player_configs: List[Dict[str, str]], judge_configs: List[Dict[str, str]]) -> None:
         """初始化游戏
         
         Args:
@@ -23,10 +24,16 @@ class Game:
         self.last_shooter_name: Optional[str] = None
         self.game_over: bool = False
 
+        # Initialize judge panel
+        self.judge_panel = JudgePanel(judge_configs)
+        
         # 创建游戏记录
         self.game_record: GameRecord = GameRecord()
         self.game_record.start_game([p.name for p in self.players])
         self.round_count = 0
+        
+        # Initialize player scores
+        self.judge_panel.initialize_scores([p.name for p in self.players])
 
     def _create_deck(self) -> List[str]:
         """创建并洗牌牌组"""
@@ -131,6 +138,24 @@ class Game:
         """重置当前小局"""
         print("小局游戏重置，开始新的一局！")
 
+        # Get round info for judges
+        round_info = {
+            "base_info": self.game_record.get_latest_round_info(),
+            "action_info": self.game_record.get_latest_round_actions(None, include_latest=True),
+            "result": self.game_record.get_latest_round_result(None)
+        }
+
+        # Let judges evaluate the round
+        self.judge_panel.evaluate_round(round_info)
+        
+        # Reveal votes and update scores
+        vote_results = self.judge_panel.reveal_votes()
+        print("\nJudge Votes:")
+        for judge_name, vote in vote_results["votes"].items():
+            print(f"{judge_name} voted for {vote['voted_player']}: {vote['reasoning']}")
+        
+        print(self.judge_panel.get_score_summary())
+        
         # 在发新牌之前进行反思，并获取存活玩家列表
         alive_players = self.handle_reflection()
 
@@ -400,28 +425,53 @@ if __name__ == '__main__':
     # 配置玩家信息, 其中model为你通过API调用的模型名称
     player_configs = [
         {
-            "name": "DeepSeek",
-            "model": "deepseek-r1"
+            "name": "1",
+            "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "ChatGPT",
-            "model": "o3-mini"
+            "name": "2",
+            "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "Claude",
-            "model": "claude-3.7-sonnet"
+            "name": "3",
+            "model": "openai/gpt-4o-mini"
         },
         {
-            "name": "Gemini",
-            "model": "gemini-2.0-flash-thinking"
+            "name": "4",
+            "model": "openai/gpt-4o-mini"
         }
     ]
 
-    print("游戏开始！玩家配置如下：")
+    # Configure judge LLMs
+    judge_configs = [
+        {
+            "name": "Judge-1",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Judge-2",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Judge-3",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Judge-4",
+            "model": "openai/gpt-4o-mini"
+        }
+    ]
+
+    print("游戏开始！")
+    print("\n玩家配置：")
     for config in player_configs:
         print(f"玩家：{config['name']}, 使用模型：{config['model']}")
-    print("-" * 50)
+    
+    print("\n评委配置：")
+    for config in judge_configs:
+        print(f"评委：{config['name']}, 使用模型：{config['model']}")
+    print("-" * 50 + "\n")
 
     # 创建游戏实例并开始游戏
-    game = Game(player_configs)
+    game = Game(player_configs, judge_configs)
     game.start_game()
