@@ -6,6 +6,58 @@
 
 程序主要分为两部分，游戏主体和分析工具
 
+Directory Structure
+.
+├── Core Game Components
+│   ├── game.py                    # Main game logic and rules
+│   ├── player.py                  # Player behavior and decision making
+│   └── llm_client.py             # LLM API integration
+├── Record Management
+│   ├── game_record.py            # Game state recording
+│   └── json_convert.py           # Record format conversion
+├── Analysis Tools
+│   ├── game_analyze.py           # Game statistics analysis
+│   ├── player_matchup_analyze.py # Player matchup analysis
+│   └── multi_game_runner.py      # Multiple game execution
+├── prompt/                       # LLM prompt templates
+│   ├── challenge_prompt_template.txt
+│   ├── play_card_prompt_template.txt
+│   ├── reflect_prompt_template.txt
+│   └── rule_base.txt
+└── demo_records/                 # Game record storage
+    ├── game_records/            # JSON format records
+    ├── converted_game_records/  # Text format records
+    └── matchup_records/        # Player matchup analysis
+
+# Key Components
+
+1. **Core Game Components**:
+   - `game.py`: Manages game flow, rules, card dealing, and round management
+   - `player.py`: Handles player actions, decision making, and interaction with LLMs
+   - `llm_client.py`: Interfaces with LLM APIs for player decisions
+
+2. **Game Record Management**:
+   - `game_record.py`: Records game states, actions, and outcomes
+   - `json_convert.py`: Converts JSON records to readable text format
+
+3. **Analysis Tools**:
+   - `game_analyze.py`: Analyzes game statistics and outcomes
+   - `player_matchup_analyze.py`: Analyzes player vs player performance
+   - `multi_game_runner.py`: Runs multiple games for analysis
+
+4. **Support Directories**:
+   - `prompt/`: Contains templates for LLM interactions
+   - `demo_records/`: Stores game records in various formats
+
+The system is designed to:
+1. Run card games between different LLM models
+2. Record detailed game states and decisions
+3. Analyze performance and strategies
+4. Convert game records to human-readable format
+5. Track player matchups and statistics
+
+Each component is modular and serves a specific purpose in the overall game system architecture.
+
 ### 游戏主体
 
 `game.py` 骗子酒馆游戏主程序
