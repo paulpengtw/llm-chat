@@ -57,7 +57,7 @@ class Game:
     def choose_target_card(self) -> None:
         """随机选择目标牌"""
         self.target_card = random.choice(['Q', 'K', 'A'])
-        print(f"目标牌是: {self.target_card}")
+        print(f"Target card is: {self.target_card}")
 
     def start_round_record(self) -> None:
         """开始新的回合，并在 `GameRecord` 里记录信息"""
@@ -115,7 +115,7 @@ class Game:
         Args:
             player: 需要执行惩罚的玩家
         """
-        print(f"玩家 {player.name} 开枪！")
+        print(f"Player {player.name} is shooting!")
         
         # 执行射击并获取存活状态
         still_alive = player.process_penalty()
@@ -128,7 +128,7 @@ class Game:
         )
 
         if not still_alive:
-            print(f"{player.name} 已死亡！")
+            print(f"{player.name} has died!")
         
         # 检查胜利条件
         if not self.check_victory():
@@ -136,7 +136,7 @@ class Game:
 
     def reset_round(self, record_shooter: bool) -> None:
         """重置当前小局"""
-        print("小局游戏重置，开始新的一局！")
+        print("Round reset, starting a new round!")
 
         # Get round info for judges
         round_info = {
@@ -169,14 +169,14 @@ class Game:
             if shooter_idx is not None and self.players[shooter_idx].alive:
                 self.current_player_idx = shooter_idx
             else:
-                print(f"{self.last_shooter_name} 已死亡，顺延至下一个存活且有手牌的玩家")
+                print(f"{self.last_shooter_name} is dead, moving to next alive player with cards")
                 self.current_player_idx = self.find_next_player_with_cards(shooter_idx or 0)
         else:
             self.last_shooter_name = None
             self.current_player_idx = self.players.index(random.choice(alive_players))
 
         self.start_round_record()
-        print(f"从 {self.players[self.current_player_idx].name} 开始新的一轮！")
+        print(f"New round starting with {self.players[self.current_player_idx].name}!")
 
     def check_victory(self) -> bool:
         """
@@ -188,7 +188,7 @@ class Game:
         alive_players = [p for p in self.players if p.alive]
         if len(alive_players) == 1:
             winner = alive_players[0]
-            print(f"\n{winner.name} 获胜！")
+            print(f"\n{winner.name} has won!")
             # 记录胜利者并保存游戏记录
             self.game_record.finish_game(winner.name)
             self.game_over = True
@@ -269,7 +269,7 @@ class Game:
         challenging_player_behavior = self.game_record.get_latest_play_behavior()
 
         # 检查是否需要添加额外提示
-        extra_hint = "注意：其他玩家手牌均已打空。" if self.check_other_players_no_cards(next_player) else ""
+        extra_hint = "Note: All other players have no cards left." if self.check_other_players_no_cards(next_player) else ""
 
         # 让下一位玩家决定是否质疑
         challenge_result, reasoning = next_player.decide_challenge(
@@ -313,7 +313,7 @@ class Game:
         Args:
             current_player: 当前玩家（最后一个有手牌的玩家）
         """
-        print(f"系统自动质疑 {current_player.name} 的手牌！")
+        print(f"System automatically challenging {current_player.name}'s cards!")
         
         # 记录玩家自动出牌
         all_cards = current_player.hand.copy()  # 复制当前手牌以供记录
@@ -324,9 +324,9 @@ class Game:
             player_name=current_player.name,
             played_cards=all_cards,
             remaining_cards=[],  # 剩余手牌为空列表
-            play_reason="最后一人，自动出牌",
-            behavior="无",
-            next_player="无",
+            play_reason="Last player, automatic play",
+            behavior="none",
+            next_player="none",
             play_thinking=""
         )
         
@@ -336,21 +336,21 @@ class Game:
         # 记录系统质疑
         self.game_record.record_challenge(
             was_challenged=True,
-            reason="系统自动质疑",
+            reason="System automatic challenge",
             result=not is_valid,  # 质疑成功意味着出牌不合法
             challenge_thinking=""
         )
         
         if is_valid:
-            print(f"系统质疑失败！{current_player.name} 的手牌符合规则。")
+            print(f"System challenge failed! {current_player.name}'s cards follow the rules.")
             # 记录一个特殊的射击结果（无人射击）
             self.game_record.record_shooting(
-                shooter_name="无",
+                shooter_name="none",
                 bullet_hit=False
             )
             self.reset_round(record_shooter=False)
         else:
-            print(f"系统质疑成功！{current_player.name} 的手牌违规，将执行射击惩罚。")
+            print(f"System challenge successful! {current_player.name}'s cards violate rules, executing shooting penalty.")
             self.perform_penalty(current_player)
 
     def handle_reflection(self) -> None:
@@ -391,7 +391,7 @@ class Game:
             self.handle_system_challenge(current_player)
             return
 
-        print(f"\n轮到 {current_player.name} 出牌, 目标牌是 {self.target_card}")
+        print(f"\nIt's {current_player.name}'s turn to play, target card is {self.target_card}")
         current_player.print_status()
 
         # 找到下一位有手牌的玩家
@@ -408,7 +408,7 @@ class Game:
                 self.perform_penalty(player_to_penalize)
                 return
             else:
-                print(f"{next_player.name} 选择不质疑，游戏继续。")
+                print(f"{next_player.name} chose not to challenge, game continues.")
                 
         # 切换至下一玩家
         self.current_player_idx = next_idx
@@ -462,14 +462,14 @@ if __name__ == '__main__':
         }
     ]
 
-    print("游戏开始！")
-    print("\n玩家配置：")
+    print("Game started!")
+    print("\nPlayer configurations:")
     for config in player_configs:
-        print(f"玩家：{config['name']}, 使用模型：{config['model']}")
+        print(f"Player: {config['name']}, Using model: {config['model']}")
     
-    print("\n评委配置：")
+    print("\nJudge configurations:")
     for config in judge_configs:
-        print(f"评委：{config['name']}, 使用模型：{config['model']}")
+        print(f"Judge: {config['name']}, Using model: {config['model']}")
     print("-" * 50 + "\n")
 
     # 创建游戏实例并开始游戏

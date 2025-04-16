@@ -113,8 +113,8 @@ class RoundRecord:
     def get_latest_round_info(self) -> str:
         """返回最新轮次的基础信息"""
         return (
-            f"现在是第{self.round_id}轮，目标牌：{self.target_card}，本轮玩家：{'、'.join(self.round_players)}，"
-            f"从玩家{self.starting_player}开始"
+            f"Current round: {self.round_id}, Target card: {self.target_card}, Players: {', '.join(self.round_players)}, "
+            f"Starting with player {self.starting_player}"
         )
 
     def get_latest_round_actions(self, current_player: str, include_latest: bool = True) -> str:
@@ -134,31 +134,31 @@ class RoundRecord:
         for action in actions_to_process:
             if action.player_name == current_player:
                 action_texts.append(
-                    f"轮到你出牌，你打出{len(action.played_cards)}张牌，出牌：{'、'.join(action.played_cards)}，"
-                    f"剩余手牌：{'、'.join(action.remaining_cards)}\n你的表现：{action.behavior}"
+                    f"Your turn, you played {len(action.played_cards)} cards: {', '.join(action.played_cards)}, "
+                    f"Remaining cards: {', '.join(action.remaining_cards)}\nYour behavior: {action.behavior}"
                 )
             else:
                 action_texts.append(
-                    f"轮到{action.player_name}出牌，{action.player_name}宣称打出{len(action.played_cards)}张'{self.target_card}'，"
-                    f"剩余手牌{len(action.remaining_cards)}张\n{action.player_name} 的表现：{action.behavior}"
+                    f"{action.player_name}'s turn, claimed to play {len(action.played_cards)} '{self.target_card}' cards, "
+                    f"Has {len(action.remaining_cards)} cards remaining\n{action.player_name}'s behavior: {action.behavior}"
                 )
             
             if action.was_challenged:
-                actual_cards = f"打出的牌是：{'、'.join(action.played_cards)}"
-                challenge_result_text = f"{actual_cards}，质疑成功" if action.challenge_result else f"{actual_cards}，质疑失败"
+                actual_cards = f"Cards played were: {', '.join(action.played_cards)}"
+                challenge_result_text = f"{actual_cards}, challenge successful" if action.challenge_result else f"{actual_cards}, challenge failed"
                 if action.next_player == current_player:
-                    challenge_text = f"你选择质疑{action.player_name}，{action.player_name}{challenge_result_text}"
+                    challenge_text = f"You chose to challenge {action.player_name}, {action.player_name} {challenge_result_text}"
                 elif action.player_name == current_player:
-                    challenge_text = f"{action.next_player}选择质疑你，你{challenge_result_text}"
+                    challenge_text = f"{action.next_player} challenged you, you {challenge_result_text}"
                 else:
-                    challenge_text = f"{action.next_player}选择质疑{action.player_name}，{action.player_name}{challenge_result_text}"
+                    challenge_text = f"{action.next_player} challenged {action.player_name}, {action.player_name} {challenge_result_text}"
             else:
                 if action.next_player == current_player:
-                    challenge_text = f"你选择不质疑{action.player_name}"
+                    challenge_text = f"You chose not to challenge {action.player_name}"
                 elif action.player_name == current_player:
-                    challenge_text = f"{action.next_player}选择不质疑你"
+                    challenge_text = f"{action.next_player} chose not to challenge you"
                 else:
-                    challenge_text = f"{action.next_player}选择不质疑{action.player_name}"
+                    challenge_text = f"{action.next_player} chose not to challenge {action.player_name}"
             action_texts.append(challenge_text)
         
         return "\n".join(action_texts)
@@ -177,9 +177,9 @@ class RoundRecord:
         if not last_action:
             return ""
             
-        return (f"{last_action.player_name}宣称打出{len(last_action.played_cards)}张'{self.target_card}'，"
-                f"剩余手牌{len(last_action.remaining_cards)}张，"
-                f"{last_action.player_name}的表现：{last_action.behavior}")
+        return (f"{last_action.player_name} claimed to play {len(last_action.played_cards)} '{self.target_card}' cards, "
+                f"Has {len(last_action.remaining_cards)} cards remaining, "
+                f"{last_action.player_name}'s behavior: {last_action.behavior}")
     
     def get_latest_round_result(self, current_player: str) -> str:
         """
@@ -194,15 +194,15 @@ class RoundRecord:
         if not self.round_result:
             return None
             
-        if self.round_result.shooter_name == "无":
-            return "无人开枪"
+        if self.round_result.shooter_name == "none":
+            return "No one shot"
             
-        shooter = "你" if self.round_result.shooter_name == current_player else self.round_result.shooter_name
+        shooter = "You" if self.round_result.shooter_name == current_player else self.round_result.shooter_name
         
         if self.round_result.bullet_hit:
-            return f"{shooter}开枪！子弹命中，{shooter}已死亡"
+            return f"{shooter} shot! Bullet hit, {shooter} has died"
         else:
-            return f"{shooter}开枪！没有命中，{shooter}还活着"
+            return f"{shooter} shot! Missed, {shooter} is still alive"
 
     def get_play_decision_info(self, self_player: str, interacting_player: str) -> str:
         """获取当前轮次出牌决策相关信息
@@ -215,11 +215,11 @@ class RoundRecord:
         """
         self_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == self_player), None)
         other_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == interacting_player), None)
-        opinion = self.player_opinions[self_player].get(interacting_player, "还不了解这个玩家")
+        opinion = self.player_opinions[self_player].get(interacting_player, "Don't know this player yet")
         
-        return (f"{interacting_player}是你的下家，决定是否质疑你的出牌。\n"
-                f"你已经开了{self_gun}枪，{interacting_player}开了{other_gun}枪。"
-                f"你对{interacting_player}的印象分析：{opinion}")
+        return (f"{interacting_player} is next player, deciding whether to challenge your play.\n"
+                f"You have shot {self_gun} times, {interacting_player} has shot {other_gun} times.\n"
+                f"Your analysis of {interacting_player}: {opinion}")
 
     def get_challenge_decision_info(self, self_player: str, interacting_player: str) -> str:
         """获取当前轮次质疑决策相关信息
@@ -232,11 +232,11 @@ class RoundRecord:
         """
         self_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == self_player), None)
         other_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == interacting_player), None)
-        opinion = self.player_opinions[self_player].get(interacting_player, "还不了解这个玩家")
+        opinion = self.player_opinions[self_player].get(interacting_player, "Don't know this player yet")
         
-        return (f"你正在判断是否质疑{interacting_player}的出牌。\n"
-                f"你已经开了{self_gun}枪，{interacting_player}开了{other_gun}枪。"
-                f"你对{interacting_player}的印象分析：{opinion}")
+        return (f"You are deciding whether to challenge {interacting_player}'s play.\n"
+                f"You have shot {self_gun} times, {interacting_player} has shot {other_gun} times.\n"
+                f"Your analysis of {interacting_player}: {opinion}")
 
 @dataclass
 class GameRecord:
@@ -355,4 +355,4 @@ class GameRecord:
         file_path = os.path.join(self.save_directory, f"{self.game_id}.json")
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(self.to_dict(), file, indent=4, ensure_ascii=False)
-        print(f"游戏记录已自动保存至 {file_path}")
+        print(f"Game record auto-saved to {file_path}")

@@ -15,7 +15,7 @@ class Player:
         
         Args:
             name: 玩家名称
-            model_name: 使用的LLM模型名称
+            model_name: 使用的 LLM 模型名称
         """
         self.name = name
         self.hand = []
@@ -24,7 +24,7 @@ class Player:
         self.current_bullet_position = 0
         self.opinions = {}
         
-        # LLM相关初始化
+        # LLM 相关初始化
         self.llm_client = LLMClient()
         self.model_name = model_name
 
@@ -34,13 +34,13 @@ class Player:
             with open(filepath, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         except Exception as e:
-            print(f"读取文件 {filepath} 失败: {str(e)}")
+            print(f"Failed to read file {filepath}: {str(e)}")
             return ""
 
     def print_status(self) -> None:
         """打印玩家状态"""
-        print(f"{self.name} - 手牌: {', '.join(self.hand)} - "
-              f"子弹位置: {self.bullet_position} - 当前弹舱位置: {self.current_bullet_position}")
+        print(f"{self.name} - Cards: {', '.join(self.hand)} - "
+              f"Bullet Position: {self.bullet_position} - Current Chamber: {self.current_bullet_position}")
         
     def init_opinions(self, other_players: List["Player"]) -> None:
         """初始化对其他玩家的看法
@@ -49,7 +49,7 @@ class Player:
             other_players: 其他玩家列表
         """
         self.opinions = {
-            player.name: "还不了解这个玩家"
+            player.name: "Don't know this player yet"
             for player in other_players
             if player.name != self.name
         }
@@ -67,9 +67,9 @@ class Player:
             play_decision_info: 出牌决策信息
             
         Returns:
-            tuple: (结果字典, 推理内容)
-            - 结果字典包含played_cards, behavior和play_reason
-            - 推理内容为LLM的原始推理过程
+            tuple: (结果字典，推理内容)
+            - 结果字典包含 played_cards, behavior 和 play_reason
+            - 推理内容为 LLM 的原始推理过程
         """
         # 读取规则和模板
         rules = self._read_file(RULE_BASE_PATH)
@@ -88,9 +88,9 @@ class Player:
             current_cards=current_cards
         )
         
-        # 尝试获取有效的JSON响应，最多重试五次
+        # 尝试获取有效的 JSON 响应，最多重试五次
         for attempt in range(5):
-            # 每次都发送相同的原始prompt
+            # 每次都发送相同的原始 prompt
             messages = [
                 {"role": "user", "content": prompt}
             ]
@@ -98,19 +98,19 @@ class Player:
             try:
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
                 
-                # 尝试从内容中提取JSON部分
+                # 尝试从内容中提取 JSON 部分
                 json_match = re.search(r'({[\s\S]*})', content)
                 if json_match:
                     json_str = json_match.group(1)
                     result = json.loads(json_str)
                     
-                    # 验证JSON格式是否符合要求
+                    # 验证 JSON 格式是否符合要求
                     if all(key in result for key in ["played_cards", "behavior", "play_reason"]):
-                        # 确保played_cards是列表
+                        # 确保 played_cards 是列表
                         if not isinstance(result["played_cards"], list):
                             result["played_cards"] = [result["played_cards"]]
                         
-                        # 确保选出的牌是有效的（从手牌中选择1-3张）
+                        # 确保选出的牌是有效的（从手牌中选择 1-3 张）
                         valid_cards = all(card in self.hand for card in result["played_cards"])
                         valid_count = 1 <= len(result["played_cards"]) <= 3
                         
@@ -122,8 +122,8 @@ class Player:
                                 
             except Exception as e:
                 # 仅记录错误，不修改重试请求
-                print(f"尝试 {attempt+1} 解析失败: {str(e)}")
-        raise RuntimeError(f"玩家 {self.name} 的choose_cards_to_play方法在多次尝试后失败")
+                print(f"Attempt {attempt+1} parsing failed: {str(e)}")
+        raise RuntimeError(f"Player {self.name}'s choose_cards_to_play method failed after multiple attempts")
 
     def decide_challenge(self,
                         round_base_info: str,
@@ -144,13 +144,13 @@ class Player:
             
         Returns:
             tuple: (result, reasoning_content)
-            - result: 包含was_challenged和challenge_reason的字典
-            - reasoning_content: LLM的原始推理过程
+            - result: 包含 was_challenged 和 challenge_reason 的字典
+            - reasoning_content: LLM 的原始推理过程
         """
         # 读取规则和模板
         rules = self._read_file(RULE_BASE_PATH)
         template = self._read_file(CHALLENGE_PROMPT_TEMPLATE_PATH)
-        self_hand = f"你现在的手牌是: {', '.join(self.hand)}"
+        self_hand = f"Your current cards are: {', '.join(self.hand)}"
         
         # 填充模板
         prompt = template.format(
@@ -164,9 +164,9 @@ class Player:
             extra_hint=extra_hint
         )
         
-        # 尝试获取有效的JSON响应，最多重试五次
+        # 尝试获取有效的 JSON 响应，最多重试五次
         for attempt in range(5):
-            # 每次都发送相同的原始prompt
+            # 每次都发送相同的原始 prompt
             messages = [
                 {"role": "user", "content": prompt}
             ]
@@ -174,22 +174,22 @@ class Player:
             try:
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
                 
-                # 解析JSON响应
+                # 解析 JSON 响应
                 json_match = re.search(r'({[\s\S]*})', content)
                 if json_match:
                     json_str = json_match.group(1)
                     result = json.loads(json_str)
                     
-                    # 验证JSON格式是否符合要求
+                    # 验证 JSON 格式是否符合要求
                     if all(key in result for key in ["was_challenged", "challenge_reason"]):
-                        # 确保was_challenged是布尔值
+                        # 确保 was_challenged 是布尔值
                         if isinstance(result["was_challenged"], bool):
                             return result, reasoning_content
                 
             except Exception as e:
                 # 仅记录错误，不修改重试请求
-                print(f"尝试 {attempt+1} 解析失败: {str(e)}")
-        raise RuntimeError(f"玩家 {self.name} 的decide_challenge方法在多次尝试后失败")
+                print(f"Attempt {attempt+1} parsing failed: {str(e)}")
+        raise RuntimeError(f"Player {self.name}'s decide_challenge method failed after multiple attempts")
 
     def reflect(self, alive_players: List[str], round_base_info: str, round_action_info: str, round_result: str) -> None:
         """
@@ -214,7 +214,7 @@ class Player:
                 continue
             
             # 获取此前对该玩家的印象
-            previous_opinion = self.opinions.get(player_name, "还不了解这个玩家")
+            previous_opinion = self.opinions.get(player_name, "Don't know this player yet")
             
             # 填充模板
             prompt = template.format(
@@ -227,7 +227,7 @@ class Player:
                 previous_opinion=previous_opinion
             )
             
-            # 向LLM请求分析
+            # 向 LLM 请求分析
             messages = [
                 {"role": "user", "content": prompt}
             ]
@@ -237,19 +237,19 @@ class Player:
                 
                 # 更新对该玩家的印象
                 self.opinions[player_name] = content.strip()
-                print(f"{self.name} 更新了对 {player_name} 的印象")
+                print(f"{self.name} updated opinion of {player_name}")
                 
             except Exception as e:
-                print(f"反思玩家 {player_name} 时出错: {str(e)}")
+                print(f"Error while reflecting on player {player_name}: {str(e)}")
 
     def process_penalty(self) -> bool:
         """处理惩罚"""
-        print(f"玩家 {self.name} 执行射击惩罚：")
+        print(f"Player {self.name} executing shooting penalty:")
         self.print_status()
         if self.bullet_position == self.current_bullet_position:
-            print(f"{self.name} 中枪死亡！")
+            print(f"{self.name} was shot and died!")
             self.alive = False
         else:
-            print(f"{self.name} 幸免于难！")
+            print(f"{self.name} survived!")
         self.current_bullet_position = (self.current_bullet_position + 1) % 6
         return self.alive
