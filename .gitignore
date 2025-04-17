@@ -1,6 +1,6 @@
 .DS_Store
-./demo_records/*
-./game_records/*
+demo_records/*
+game_records/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

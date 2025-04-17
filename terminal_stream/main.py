@@ -1,25 +1,12 @@
 from flask import Flask, render_template_string, Response
-import sys
-import io
-import queue
 import threading
 import time
+import sys
+import queue
+from stream_handler import get_message_queue, init_stream
 
 app = Flask(__name__)
-# Make messages queue global and shared
-messages = queue.Queue()
-global_messages = messages  # For sharing across modules
-
-# Custom stdout stream
-class WebStream(io.TextIOBase):
-    def write(self, text):
-        if text and not text.isspace():
-            global_messages.put(text)
-        return len(text)
-
-# Replace stdout with our custom stream
-original_stdout = sys.stdout
-sys.stdout = WebStream()
+messages = get_message_queue()
 
 # HTML template with Server-Sent Events
 HTML_TEMPLATE = """
@@ -59,9 +46,11 @@ HTML_TEMPLATE = """
         eventSource.onmessage = function(event) {
             const line = document.createElement('pre');
             line.className = 'line';
-            line.textContent = event.data;
-            output.appendChild(line);
-            output.scrollTop = output.scrollHeight;
+            line.innerHTML = event.data;
+            if (event.data !== '\0') {  // Only append non-null messages
+                output.appendChild(line);
+            }
+            output.scrollTop = output.scrollHeight;  // Always scroll on any message
         };
         
         eventSource.onerror = function() {
@@ -86,26 +75,28 @@ def stream():
         while True:
             try:
                 message = messages.get(timeout=1)
+                # Ensure the message is a string and handle any formatting
+                if isinstance(message, (list, dict)):
+                    message = str(message)
+                # Escape special characters for proper HTML rendering
+                message = message.replace('\n', '<br>').replace('═', '=').replace('★', '*').replace('─', '-')
                 yield f"data: {message}\n\n"
+                yield f"data: \0\n\n"  # Send null character to trigger scroll
             except queue.Empty:
-                yield f"data: \n\n"  # Keep-alive message
+                yield f"data: \0\n\n"  # Keep-alive message with null character
 
     return Response(generate(), mimetype='text/event-stream')
 
-def test_output():
+def run_game_thread():
+    # Import here to avoid circular imports
+    from game_runner import run_game
     time.sleep(2)  # Wait for server to start
-    while True:
-        print("Starting test output...")
-        for i in range(5):
-            print(f"Test line {i + 1}")
-            time.sleep(1)
-        print("Test complete!")
-        time.sleep(3)  # Wait before next round
+    run_game()
 
 def main():
-    # Start test output in a separate thread
-    output_thread = threading.Thread(target=test_output, daemon=True)
-    output_thread.start()
+    # Start game in a separate thread
+    game_thread = threading.Thread(target=run_game_thread, daemon=True)
+    game_thread.start()
     
     # Run the Flask app
     app.run(host='127.0.0.1', port=5000, threaded=True)

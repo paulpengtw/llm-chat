@@ -29,7 +29,7 @@ class LLMClient:
             tuple: (content, reasoning_content)
         """
         try:
-            print(f"LLM请求: {messages}")
+            print(f"LLM Request: {messages}")
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -38,13 +38,13 @@ class LLMClient:
                 message = response.choices[0].message
                 content = message.content if message.content else ""
                 reasoning_content = getattr(message, "reasoning_content", "")
-                print(f"LLM推理内容: {content}")
+                print(f"LLM Reasoning Content: {content}")
                 return content, reasoning_content
             
             return "", ""
                 
         except Exception as e:
-            print(f"LLM调用出错: {str(e)}")
+            print(f"LLM calling error: {str(e)}")
             return "", ""
 
 # 使用示例

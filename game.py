@@ -422,7 +422,7 @@ class Game:
             self.play_round()
 
 if __name__ == '__main__':
-    # 配置玩家信息, 其中model为你通过API调用的模型名称
+    # 配置玩家信息，其中 model 为你通过 API 调用的模型名称
     player_configs = [
         {
             "name": "Hearts",
