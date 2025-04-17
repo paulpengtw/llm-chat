@@ -20,10 +20,6 @@ class Player:
         self.name = name
         self.hand = []
         self.alive = True
-        self.bullet_position = random.randint(0, 5)
-        self.current_bullet_position = 0
-        self.opinions = {}
-        
         # LLM 相关初始化
         self.llm_client = LLMClient()
         self.model_name = model_name
@@ -39,8 +35,7 @@ class Player:
 
     def print_status(self) -> None:
         """打印玩家状态"""
-        print(f"{self.name} - Cards: {', '.join(self.hand)} - "
-              f"Bullet Position: {self.bullet_position} - Current Chamber: {self.current_bullet_position}")
+        print(f"{self.name} - Cards: {', '.join(self.hand)}")
         
     def init_opinions(self, other_players: List["Player"]) -> None:
         """初始化对其他玩家的看法
@@ -191,7 +186,7 @@ class Player:
                 print(f"Attempt {attempt+1} parsing failed: {str(e)}")
         raise RuntimeError(f"Player {self.name}'s decide_challenge method failed after multiple attempts")
 
-    def reflect(self, alive_players: List[str], round_base_info: str, round_action_info: str, round_result: str) -> None:
+    def reflect(self, alive_players: List[str], round_base_info: str, round_action_info: str) -> None:
         """
         玩家在轮次结束后对其他存活玩家进行反思，更新对他们的印象
         
@@ -199,7 +194,6 @@ class Player:
             alive_players: 还存活的玩家名称列表
             round_base_info: 轮次基础信息
             round_action_info: 轮次操作信息
-            round_result: 轮次结果
         """
         # 读取反思模板
         template = self._read_file(REFLECT_PROMPT_TEMPLATE_PATH)
@@ -222,7 +216,6 @@ class Player:
                 self_name=self.name,
                 round_base_info=round_base_info,
                 round_action_info=round_action_info,
-                round_result=round_result,
                 player=player_name,
                 previous_opinion=previous_opinion
             )
@@ -241,15 +234,3 @@ class Player:
                 
             except Exception as e:
                 print(f"Error while reflecting on player {player_name}: {str(e)}")
-
-    def process_penalty(self) -> bool:
-        """处理惩罚"""
-        print(f"Player {self.name} executing shooting penalty:")
-        self.print_status()
-        if self.bullet_position == self.current_bullet_position:
-            print(f"{self.name} was shot and died!")
-            self.alive = False
-        else:
-            print(f"{self.name} survived!")
-        self.current_bullet_position = (self.current_bullet_position + 1) % 6
-        return self.alive

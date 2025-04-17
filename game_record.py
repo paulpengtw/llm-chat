@@ -5,23 +5,19 @@ import json
 import os
 
 def generate_game_id():
-    """生成包含时间信息的游戏ID"""
+    """生成包含时间信息的游戏 ID"""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return timestamp
 
 @dataclass
 class PlayerInitialState:
-    """记录玩家初始状态，包括手枪状态和手牌"""
+    """记录玩家初始状态和手牌"""
     player_name: str
-    bullet_position: int
-    current_gun_position: int
     initial_hand: List[str]
     
     def to_dict(self) -> Dict:
         return {
             "player_name": self.player_name,
-            "bullet_position": self.bullet_position,
-            "current_gun_position": self.current_gun_position,
             "initial_hand": self.initial_hand
         }
 
@@ -63,18 +59,6 @@ class PlayAction:
         self.challenge_thinking = challenge_thinking
 
 @dataclass
-class ShootingResult:
-    """记录一次开枪结果"""
-    shooter_name: str
-    bullet_hit: bool
-    
-    def to_dict(self) -> Dict:
-        return {
-            "shooter_name": self.shooter_name,
-            "bullet_hit": self.bullet_hit,
-        }
-
-@dataclass
 class RoundRecord:
     """记录一轮游戏"""
     round_id: int
@@ -84,7 +68,6 @@ class RoundRecord:
     round_players: List[str] = field(default_factory=list)
     player_opinions: Dict[str, Dict[str, str]] = field(default_factory=dict)
     play_history: List[PlayAction] = field(default_factory=list)
-    round_result: Optional[ShootingResult] = None
     
     def to_dict(self) -> Dict:
         return {
@@ -94,8 +77,7 @@ class RoundRecord:
             "starting_player": self.starting_player,
             "player_initial_states": [ps.to_dict() for ps in self.player_initial_states],
             "player_opinions": self.player_opinions,
-            "play_history": [play.to_dict() for play in self.play_history],
-            "round_result": self.round_result.to_dict() if self.round_result else None
+            "play_history": [play.to_dict() for play in self.play_history]
         }
     
     def add_play_action(self, action: PlayAction) -> None:
@@ -106,10 +88,6 @@ class RoundRecord:
         """获取最后一次出牌记录"""
         return self.play_history[-1] if self.play_history else None
     
-    def set_shooting_result(self, result: ShootingResult) -> None:
-        """设置射击结果"""
-        self.round_result = result
-
     def get_latest_round_info(self) -> str:
         """返回最新轮次的基础信息"""
         return (
@@ -181,29 +159,6 @@ class RoundRecord:
                 f"Has {len(last_action.remaining_cards)} cards remaining, "
                 f"{last_action.player_name}'s behavior: {last_action.behavior}")
     
-    def get_latest_round_result(self, current_player: str) -> str:
-        """
-        返回最新的射击结果
-        
-        Args:
-            current_player (str): 当前玩家名称
-            
-        Returns:
-            str: 格式化的射击结果文本
-        """
-        if not self.round_result:
-            return None
-            
-        if self.round_result.shooter_name == "none":
-            return "No one shot"
-            
-        shooter = "You" if self.round_result.shooter_name == current_player else self.round_result.shooter_name
-        
-        if self.round_result.bullet_hit:
-            return f"{shooter} shot! Bullet hit, {shooter} has died"
-        else:
-            return f"{shooter} shot! Missed, {shooter} is still alive"
-
     def get_play_decision_info(self, self_player: str, interacting_player: str) -> str:
         """获取当前轮次出牌决策相关信息
         
@@ -211,14 +166,10 @@ class RoundRecord:
             self_player: 当前玩家
             interacting_player: 下家玩家
         Returns:
-            str: 包含双方枪状态和当前玩家对下家印象的信息
+            str: 包含玩家印象信息
         """
-        self_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == self_player), None)
-        other_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == interacting_player), None)
         opinion = self.player_opinions[self_player].get(interacting_player, "Don't know this player yet")
-        
         return (f"{interacting_player} is next player, deciding whether to challenge your play.\n"
-                f"You have shot {self_gun} times, {interacting_player} has shot {other_gun} times.\n"
                 f"Your analysis of {interacting_player}: {opinion}")
 
     def get_challenge_decision_info(self, self_player: str, interacting_player: str) -> str:
@@ -228,14 +179,10 @@ class RoundRecord:
             self_player: 当前玩家
             interacting_player: 上家玩家
         Returns:
-            str: 包含双方枪状态和当前玩家对上家印象的信息
+            str: 包含玩家印象信息
         """
-        self_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == self_player), None)
-        other_gun = next((ps.current_gun_position for ps in self.player_initial_states if ps.player_name == interacting_player), None)
         opinion = self.player_opinions[self_player].get(interacting_player, "Don't know this player yet")
-        
         return (f"You are deciding whether to challenge {interacting_player}'s play.\n"
-                f"You have shot {self_gun} times, {interacting_player} has shot {other_gun} times.\n"
                 f"Your analysis of {interacting_player}: {opinion}")
 
 @dataclass
@@ -299,14 +246,6 @@ class GameRecord:
             if last_action:
                 last_action.update_challenge(was_challenged, reason, result, challenge_thinking)
     
-    def record_shooting(self, shooter_name: str, bullet_hit: bool) -> None:
-        """记录射击结果"""
-        current_round = self.get_current_round()
-        if current_round:
-            shooting_result = ShootingResult(shooter_name=shooter_name, bullet_hit=bullet_hit)
-            current_round.set_shooting_result(shooting_result)
-            self.auto_save()  # 射击后自动保存
-    
     def finish_game(self, winner_name: str) -> None:
         """记录胜利者并保存最终结果"""
         self.winner = winner_name
@@ -332,11 +271,6 @@ class GameRecord:
         """
         current_round = self.get_current_round()
         return current_round.get_latest_play_behavior() if current_round else None
-
-    def get_latest_round_result(self, current_player: str) -> Optional[str]:
-        """获取最新轮次的射击结果"""
-        current_round = self.get_current_round()
-        return current_round.get_latest_round_result(current_player) if current_round else None
 
     def get_play_decision_info(self, self_player: str, interacting_player: str) -> Optional[str]:
         """获取最新轮次出牌决策相关信息

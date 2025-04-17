@@ -44,7 +44,8 @@ class JudgePanel:
         prompt = self.judge_prompt
         prompt = prompt.replace("%round_base_info%", json.dumps(round_info["base_info"], indent=2))
         prompt = prompt.replace("%round_action_info%", json.dumps(round_info["action_info"], indent=2))
-        prompt = prompt.replace("%round_result%", json.dumps(round_info["result"], indent=2))
+        # Since we removed penalty functionality, result is always None
+        prompt = prompt.replace("%round_result%", "null")
 
         # Collect votes from each judge
         for judge in self.judges:

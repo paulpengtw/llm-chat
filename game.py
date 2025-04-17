@@ -21,7 +21,6 @@ class Game:
         self.deck: List[str] = []
         self.target_card: Optional[str] = None
         self.current_player_idx: int = random.randint(0, len(self.players) - 1)
-        self.last_shooter_name: Optional[str] = None
         self.game_over: bool = False
 
         # Initialize judge panel
@@ -66,10 +65,8 @@ class Game:
         player_initial_states = [
             PlayerInitialState(
                 player_name=player.name,
-                bullet_position=player.bullet_position,
-                current_gun_position=player.current_bullet_position,
                 initial_hand=player.hand.copy()
-            ) 
+            )
             for player in self.players if player.alive
         ]
 
@@ -108,41 +105,18 @@ class Game:
                 return idx
         return start_idx  # 理论上不会发生
 
-    def perform_penalty(self, player: Player) -> None:
-        """
-        执行射击惩罚，并根据结果更新游戏状态和记录
-
+    def reset_round(self, use_current_player: bool) -> None:
+        """重置当前小局
+        
         Args:
-            player: 需要执行惩罚的玩家
+            use_current_player: 是否使用当前玩家作为下一轮的开始者
         """
-        print(f"Player {player.name} is shooting!")
-        
-        # 执行射击并获取存活状态
-        still_alive = player.process_penalty()
-        self.last_shooter_name = player.name
-
-        # 记录射击结果
-        self.game_record.record_shooting(
-            shooter_name=player.name,
-            bullet_hit=not still_alive  # 如果玩家死亡，说明子弹命中
-        )
-
-        if not still_alive:
-            print(f"{player.name} has died!")
-        
-        # 检查胜利条件
-        if not self.check_victory():
-            self.reset_round(record_shooter=True)
-
-    def reset_round(self, record_shooter: bool) -> None:
-        """重置当前小局"""
         print("Round reset, starting a new round!")
 
         # Get round info for judges
         round_info = {
             "base_info": self.game_record.get_latest_round_info(),
-            "action_info": self.game_record.get_latest_round_actions(None, include_latest=True),
-            "result": self.game_record.get_latest_round_result(None)
+            "action_info": self.game_record.get_latest_round_actions(None, include_latest=True)
         }
 
         # Let judges evaluate the round
@@ -162,17 +136,9 @@ class Game:
         # 重新发牌
         self.deal_cards()
         self.choose_target_card()
-
-        if record_shooter and self.last_shooter_name:
-            shooter_idx = next((i for i, p in enumerate(self.players)
-                                if p.name == self.last_shooter_name), None)
-            if shooter_idx is not None and self.players[shooter_idx].alive:
-                self.current_player_idx = shooter_idx
-            else:
-                print(f"{self.last_shooter_name} is dead, moving to next alive player with cards")
-                self.current_player_idx = self.find_next_player_with_cards(shooter_idx or 0)
-        else:
-            self.last_shooter_name = None
+        
+        # 如果不使用当前玩家，则随机选择一个存活玩家开始新一轮
+        if not use_current_player:
             self.current_player_idx = self.players.index(random.choice(alive_players))
 
         self.start_round_record()
@@ -180,17 +146,19 @@ class Game:
 
     def check_victory(self) -> bool:
         """
-        检查胜利条件（仅剩一名存活玩家时），并记录胜利者
+        检查胜利条件（当前轮所有玩家出完手牌），并记录胜利者
         
         Returns:
             bool: 游戏是否结束
         """
-        alive_players = [p for p in self.players if p.alive]
-        if len(alive_players) == 1:
-            winner = alive_players[0]
-            print(f"\n{winner.name} has won!")
+        # 检查所有玩家是否都没有手牌
+        if all(not p.hand for p in self.players):
+            # 获取当前轮的评分和裁判结果
+            self.judge_panel.reveal_votes()
+            winner_name = self.judge_panel.get_highest_scorer()
+            print(f"\n{winner_name} has won!")
             # 记录胜利者并保存游戏记录
-            self.game_record.finish_game(winner.name)
+            self.game_record.finish_game(winner_name)
             self.game_over = True
             return True
         return False
@@ -341,17 +309,8 @@ class Game:
             challenge_thinking=""
         )
         
-        if is_valid:
-            print(f"System challenge failed! {current_player.name}'s cards follow the rules.")
-            # 记录一个特殊的射击结果（无人射击）
-            self.game_record.record_shooting(
-                shooter_name="none",
-                bullet_hit=False
-            )
-            self.reset_round(record_shooter=False)
-        else:
-            print(f"System challenge successful! {current_player.name}'s cards violate rules, executing shooting penalty.")
-            self.perform_penalty(current_player)
+        print(f"System challenge {'failed' if is_valid else 'successful'}! {current_player.name}'s cards {'follow' if is_valid else 'violate'} the rules.")
+        self.reset_round(False)
 
     def handle_reflection(self) -> None:
         """
@@ -369,15 +328,11 @@ class Game:
         for player in alive_players:
             # 获取针对当前玩家的轮次行动信息
             round_action_info = self.game_record.get_latest_round_actions(player.name, include_latest=True)
-            # 获取针对当前玩家的轮次结果
-            round_result = self.game_record.get_latest_round_result(player.name)
-            
             # 执行反思
             player.reflect(
                 alive_players=alive_player_names,
                 round_base_info=round_base_info,
-                round_action_info=round_action_info,
-                round_result=round_result
+                round_action_info=round_action_info
             )
 
         return alive_players
@@ -405,7 +360,8 @@ class Game:
         if next_player != current_player:
             player_to_penalize = self.handle_challenge(current_player, next_player, played_cards)
             if player_to_penalize:
-                self.perform_penalty(player_to_penalize)
+                print(f"{player_to_penalize.name} played invalid cards!")
+                self.reset_round(False)
                 return
             else:
                 print(f"{next_player.name} chose not to challenge, game continues.")

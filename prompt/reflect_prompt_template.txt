@@ -4,7 +4,6 @@ You are {self_name}
 Here is the situation from the current round:
 {round_base_info}
 {round_action_info}
-{round_result}
 
 To improve your survival probability in this psychological game, you need to thoroughly understand other players.
 Here is your previous understanding of player {player}:
