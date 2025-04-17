@@ -35,23 +35,17 @@ class Game:
         self.judge_panel.initialize_scores([p.name for p in self.players])
 
     def _create_deck(self) -> List[str]:
-        """创建并洗牌牌组"""
-        deck = ['Q'] * 6 + ['K'] * 6 + ['A'] * 6 + ['Joker'] * 2
-        random.shuffle(deck)
-        return deck
+        """创建空牌组"""
+        return []
 
     def deal_cards(self) -> None:
-        """发牌并清空旧手牌"""
+        """给每个存活玩家5张K牌"""
         self.deck = self._create_deck()
         for player in self.players:
             if player.alive:
                 player.hand.clear()
-        # 每位玩家发 5 张牌
-        for _ in range(5):
-            for player in self.players:
-                if player.alive and self.deck:
-                    player.hand.append(self.deck.pop())
-                    player.print_status()
+                player.hand = ['K'] * 5
+                player.print_status()
 
     def choose_target_card(self) -> None:
         """随机选择目标牌"""
