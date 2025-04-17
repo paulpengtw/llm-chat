@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Terminal Output</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        #output {
+            background-color: #000000;
+            border-radius: 5px;
+            padding: 15px;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .line {
+            margin: 0;
+            padding: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="output"></div>
+    <script>
+        const output = document.getElementById('output');
+        const ws = new WebSocket('ws://localhost:8000/ws');
+
+        ws.onmessage = function(event) {
+            const line = document.createElement('pre');
+            line.className = 'line';
+            line.textContent = event.data;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        };
+
+        ws.onclose = function() {
+            const line = document.createElement('pre');
+            line.className = 'line';
+            line.style.color = '#ff6b6b';
+            line.textContent = '--- Connection closed ---';
+            output.appendChild(line);
+        };
+    </script>
+</body>
+</html>
