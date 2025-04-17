@@ -1,0 +1,15 @@
+{rules}
+
+You are {self_name}
+Here is the current game situation:
+{round_base_info}
+{round_action_info}
+
+It's your turn to play cards. {play_decision_info}
+Your current hand is: {current_cards}
+
+You need to output a complete JSON structure with four key-value pairs:
+"played_cards": list, representing the cards you decide to play. You can only choose 1-3 cards from your current hand. Other players can only see how many cards you played, not their actual values.
+"behavior": str, a description without subject of actions/expressions/statements showing your behavior while playing the cards. Your behavior will be observed and analyzed by other players. You can freely choose your strategy, whether to show weakness/disguise/provoke/sow discord, etc.
+"talk": str, what you want to say to other players during your turn. You can use this to express thoughts, make declarations, or interact with others.
+"play_reason": str, a brief explanation of why you chose to play these cards and behave this way.

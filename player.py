@@ -91,8 +91,25 @@ class Player:
             ]
             
             try:
+                # DEBUG OUTPUT
+                # Purpose: This debug section helps diagnose LLM response validation issues
+                # It shows:
+                # 1. What prompt was sent to the LLM
+                # 2. What response was received
+                # 3. Whether the response has valid JSON structure
+                # 4. If cards being played are valid (in hand and within 1-3 count limit)
+                # Uncomment below lines when debugging is needed
+                """
+                print(f"\n=== DEBUG: Attempt {attempt+1} for {self.name} ===")
+                print(f"Prompt being sent:\n{prompt}")
+                """
+                
                 # Make API call to LLM
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
+                
+                """
+                print(f"\nRaw LLM Response:\n{content}")
+                """
                 
                 # 尝试从内容中提取 JSON 部分 - Extract JSON from potentially multi-line response
                 json_match = re.search(r'({[\s\S]*})', content)  # Regex matches JSON across lines
@@ -101,7 +118,8 @@ class Player:
                     result = json.loads(json_str)   # Parse JSON into dict
                     
                     # 验证 JSON 格式是否符合要求 - Validate response structure
-                    if all(key in result for key in ["played_cards", "behavior", "talk", "play_reason"]):
+                    has_required_keys = all(key in result for key in ["played_cards", "behavior", "talk", "play_reason"])
+                    if has_required_keys:
                         # 确保 played_cards 是列表 - Convert single card to list if needed
                         if not isinstance(result["played_cards"], list):
                             result["played_cards"] = [result["played_cards"]]  # Wrap single card in list
@@ -115,10 +133,16 @@ class Player:
                             for card in result["played_cards"]:
                                 self.hand.remove(card)  # Update player's hand
                             return result, reasoning_content  # Return decision and LLM reasoning
+                    else:
+                        print("- Missing required keys in response")
                                 
             except Exception as e:
                 # 仅记录错误，不修改重试请求
-                print(f"Attempt {attempt+1} parsing failed: {str(e)}")
+                """
+                print(f"Attempt {attempt+1} parsing failed with error: {str(e)}")
+                import traceback
+                print(f"Full error traceback:\n{traceback.format_exc()}")
+                """
         raise RuntimeError(f"Player {self.name}'s choose_cards_to_play method failed after multiple attempts")
 
     def decide_challenge(self,

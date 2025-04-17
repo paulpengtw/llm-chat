@@ -70,6 +70,24 @@ python3 main.py
 - Uses port 5000 by default
 - Requires Python 3.x and Flask
 
+### Debugging LLM Responses
+
+The Player class includes a built-in debug output system to help diagnose LLM response issues:
+
+- Location: `player.py` in the `choose_cards_to_play` method
+- Purpose: Helps diagnose validation issues with LLM responses
+- What it tracks:
+  - Prompts sent to the LLM
+  - Raw responses received
+  - JSON structure validation
+  - Card play validation (hand contents and count limits)
+- Usage: Uncomment the debug print statements in the marked DEBUG OUTPUT section
+- When to use: 
+  - When investigating LLM response parsing failures
+  - When validating game rule compliance
+  - During development of new game mechanics
+  - When troubleshooting card play logic
+
 ## Requirements
 
 - Python 3.x
