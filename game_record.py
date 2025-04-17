@@ -29,6 +29,7 @@ class PlayAction:
     remaining_cards: List[str]
     play_reason: str
     behavior: str
+    talk: str  # Player's speech during their turn
     next_player: str
     was_challenged: bool = False
     challenge_reason: Optional[str] = None
@@ -43,6 +44,7 @@ class PlayAction:
             "remaining_cards": self.remaining_cards,
             "play_reason": self.play_reason,
             "behavior": self.behavior,
+            "talk": self.talk,
             "next_player": self.next_player,
             "was_challenged": self.was_challenged,
             "challenge_reason": self.challenge_reason,
@@ -113,12 +115,16 @@ class RoundRecord:
             if action.player_name == current_player:
                 action_texts.append(
                     f"Your turn, you played {len(action.played_cards)} cards: {', '.join(action.played_cards)}, "
-                    f"Remaining cards: {', '.join(action.remaining_cards)}\nYour behavior: {action.behavior}"
+                    f"Remaining cards: {', '.join(action.remaining_cards)}\n"
+                    f"Your behavior: {action.behavior}\n"
+                    f"You said: \"{action.talk}\""
                 )
             else:
                 action_texts.append(
                     f"{action.player_name}'s turn, claimed to play {len(action.played_cards)} '{self.target_card}' cards, "
-                    f"Has {len(action.remaining_cards)} cards remaining\n{action.player_name}'s behavior: {action.behavior}"
+                    f"Has {len(action.remaining_cards)} cards remaining\n"
+                    f"{action.player_name}'s behavior: {action.behavior}\n"
+                    f"{action.player_name} said: \"{action.talk}\""
                 )
             
             if action.was_challenged:
@@ -157,7 +163,8 @@ class RoundRecord:
             
         return (f"{last_action.player_name} claimed to play {len(last_action.played_cards)} '{self.target_card}' cards, "
                 f"Has {len(last_action.remaining_cards)} cards remaining, "
-                f"{last_action.player_name}'s behavior: {last_action.behavior}")
+                f"{last_action.player_name}'s behavior: {last_action.behavior}, "
+                f"Said: \"{last_action.talk}\"")
     
     def get_play_decision_info(self, self_player: str, interacting_player: str) -> str:
         """获取当前轮次出牌决策相关信息
@@ -223,7 +230,8 @@ class GameRecord:
         )
         self.rounds.append(round_record)
     
-    def record_play(self, player_name: str, played_cards: List[str], remaining_cards: List[str], play_reason: str, behavior: str, next_player: str, play_thinking: str = None) -> None:
+    def record_play(self, player_name: str, played_cards: List[str], remaining_cards: List[str], 
+                   play_reason: str, behavior: str, talk: str, next_player: str, play_thinking: str = None) -> None:
         """记录玩家的出牌行为"""
         current_round = self.get_current_round()
         if current_round:
@@ -233,6 +241,7 @@ class GameRecord:
                 remaining_cards=remaining_cards,
                 play_reason=play_reason,
                 behavior=behavior,
+                talk=talk,
                 next_player=next_player,
                 play_thinking=play_thinking
             )

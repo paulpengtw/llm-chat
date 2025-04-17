@@ -199,6 +199,7 @@ class Game:
             remaining_cards=current_player.hand.copy(),
             play_reason=play_result["play_reason"],
             behavior=play_result["behavior"],
+            talk=play_result["talk"],
             next_player=next_player.name,
             play_thinking=reasoning
         )
@@ -228,7 +229,7 @@ class Game:
         )
 
         # 获取被质疑玩家的表现
-        challenging_player_behavior = self.game_record.get_latest_play_behavior()
+        challenged_player_behavior = self.game_record.get_latest_play_behavior()
 
         # 检查是否需要添加额外提示
         extra_hint = "Note: All other players have no cards left." if self.check_other_players_no_cards(next_player) else ""
@@ -238,7 +239,7 @@ class Game:
             round_base_info,
             round_action_info,
             challenge_decision_info,
-            challenging_player_behavior,
+            challenged_player_behavior,
             extra_hint
         )
 
@@ -288,6 +289,7 @@ class Game:
             remaining_cards=[],  # 剩余手牌为空列表
             play_reason="Last player, automatic play",
             behavior="none",
+            talk="",
             next_player="none",
             play_thinking=""
         )

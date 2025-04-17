@@ -73,47 +73,48 @@ class Player:
         # 准备当前手牌信息
         current_cards = ", ".join(self.hand)
         
-        # 填充模板
+        # 填充模板 - Construct the complete prompt by combining:
         prompt = template.format(
-            rules=rules,
-            self_name=self.name,
-            round_base_info=round_base_info,
-            round_action_info=round_action_info,
-            play_decision_info=play_decision_info,
-            current_cards=current_cards
+            rules=rules,                     # Game rules for context
+            self_name=self.name,             # Player's own name for self-awareness
+            round_base_info=round_base_info, # Current round state (e.g., target card)
+            round_action_info=round_action_info,  # Previous actions in this round
+            play_decision_info=play_decision_info,# Additional context for decision
+            current_cards=current_cards      # Player's available cards
         )
         
-        # 尝试获取有效的 JSON 响应，最多重试五次
+        # 尝试获取有效的 JSON 响应，最多重试五次 - Retry mechanism for handling API failures
         for attempt in range(5):
-            # 每次都发送相同的原始 prompt
+            # 每次都发送相同的原始 prompt - Create message for LLM API
             messages = [
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt}  # Single message with formatted prompt
             ]
             
             try:
+                # Make API call to LLM
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
                 
-                # 尝试从内容中提取 JSON 部分
-                json_match = re.search(r'({[\s\S]*})', content)
+                # 尝试从内容中提取 JSON 部分 - Extract JSON from potentially multi-line response
+                json_match = re.search(r'({[\s\S]*})', content)  # Regex matches JSON across lines
                 if json_match:
-                    json_str = json_match.group(1)
-                    result = json.loads(json_str)
+                    json_str = json_match.group(1)  # Get the JSON string
+                    result = json.loads(json_str)   # Parse JSON into dict
                     
-                    # 验证 JSON 格式是否符合要求
-                    if all(key in result for key in ["played_cards", "behavior", "play_reason"]):
-                        # 确保 played_cards 是列表
+                    # 验证 JSON 格式是否符合要求 - Validate response structure
+                    if all(key in result for key in ["played_cards", "behavior", "talk", "play_reason"]):
+                        # 确保 played_cards 是列表 - Convert single card to list if needed
                         if not isinstance(result["played_cards"], list):
-                            result["played_cards"] = [result["played_cards"]]
+                            result["played_cards"] = [result["played_cards"]]  # Wrap single card in list
                         
-                        # 确保选出的牌是有效的（从手牌中选择 1-3 张）
-                        valid_cards = all(card in self.hand for card in result["played_cards"])
-                        valid_count = 1 <= len(result["played_cards"]) <= 3
+                        # 确保选出的牌是有效的（从手牌中选择 1-3 张）- Validate card selection
+                        valid_cards = all(card in self.hand for card in result["played_cards"])  # All cards must be in hand
+                        valid_count = 1 <= len(result["played_cards"]) <= 3  # Must play 1-3 cards
                         
                         if valid_cards and valid_count:
-                            # 从手牌中移除已出的牌
+                            # 从手牌中移除已出的牌 - Remove played cards from hand
                             for card in result["played_cards"]:
-                                self.hand.remove(card)
-                            return result, reasoning_content
+                                self.hand.remove(card)  # Update player's hand
+                            return result, reasoning_content  # Return decision and LLM reasoning
                                 
             except Exception as e:
                 # 仅记录错误，不修改重试请求
@@ -124,7 +125,7 @@ class Player:
                         round_base_info: str,
                         round_action_info: str,
                         challenge_decision_info: str,
-                        challenging_player_performance: str,
+                        challenged_player_performance: str,
                         extra_hint: str) -> bool:
         """
         玩家决定是否对上一位玩家的出牌进行质疑
@@ -134,7 +135,20 @@ class Player:
             round_base_info: 轮次基础信息
             round_action_info: 轮次操作信息
             challenge_decision_info: 质疑决策信息
-            challenging_player_performance: 被质疑玩家的表现描述
+            challenged_player_performance: 被质疑玩家的表现描述
+                The challenged_player_performance parameter originates from the get_latest_play_behavior() method in the RoundRecord class (game_record.py). It's a formatted string that describes the last player's action, including:
+                    - Who played
+                    - How many cards they claimed to play
+                    - What the target card was
+                    - How many cards they have remaining
+                    - Their behavior during the play
+                The flow is:
+                    - Game.handle_challenge() gets this information by calling game_record.
+                    - get_latest_play_behavior()
+                    - This delegates to the current round's get_latest_play_behavior() method
+                    - The method formats the last PlayAction record into a descriptive string
+                    - This string is then passed to the next player's decide_challenge() method as challenged_player_performance
+
             extra_hint: 额外提示信息
             
         Returns:
@@ -147,16 +161,16 @@ class Player:
         template = self._read_file(CHALLENGE_PROMPT_TEMPLATE_PATH)
         self_hand = f"Your current cards are: {', '.join(self.hand)}"
         
-        # 填充模板
+        # 填充模板 - Format challenge decision prompt with:
         prompt = template.format(
-            rules=rules,
-            self_name=self.name,
-            round_base_info=round_base_info,
-            round_action_info=round_action_info,
-            self_hand=self_hand,
-            challenge_decision_info=challenge_decision_info,
-            challenging_player_performance=challenging_player_performance,
-            extra_hint=extra_hint
+            rules=rules,                     # Game rules context
+            self_name=self.name,             # Player's own name
+            round_base_info=round_base_info, # Current round state
+            round_action_info=round_action_info,     # Actions taken this round
+            self_hand=self_hand,                     # Player's current cards
+            challenge_decision_info=challenge_decision_info,  # Challenge context
+            challenged_player_performance=challenged_player_performance,  # Target's behavior
+            extra_hint=extra_hint           # Any additional strategic hints
         )
         
         # 尝试获取有效的 JSON 响应，最多重试五次
@@ -167,19 +181,20 @@ class Player:
             ]
             
             try:
+                # Make API call and get response
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
                 
-                # 解析 JSON 响应
-                json_match = re.search(r'({[\s\S]*})', content)
+                # 解析 JSON 响应 - Extract JSON from LLM response
+                json_match = re.search(r'({[\s\S]*})', content)  # Match JSON across lines
                 if json_match:
-                    json_str = json_match.group(1)
-                    result = json.loads(json_str)
+                    json_str = json_match.group(1)  # Extract matched JSON
+                    result = json.loads(json_str)   # Parse into dictionary
                     
-                    # 验证 JSON 格式是否符合要求
+                    # 验证 JSON 格式是否符合要求 - Validate response format
                     if all(key in result for key in ["was_challenged", "challenge_reason"]):
-                        # 确保 was_challenged 是布尔值
+                        # 确保 was_challenged 是布尔值 - Ensure boolean challenge decision
                         if isinstance(result["was_challenged"], bool):
-                            return result, reasoning_content
+                            return result, reasoning_content  # Return decision and reasoning
                 
             except Exception as e:
                 # 仅记录错误，不修改重试请求
@@ -196,41 +211,43 @@ class Player:
             round_action_info: 轮次操作信息
         """
         # 读取反思模板
-        template = self._read_file(REFLECT_PROMPT_TEMPLATE_PATH)
+        template = self._read_file(REFLECT_PROMPT_TEMPLATE_PATH)  # Load reflection template
         
-        # 读取规则
-        rules = self._read_file(RULE_BASE_PATH)
+        # 读取规则 - Load game rules
+        rules = self._read_file(RULE_BASE_PATH)  # Rules provide context for reflection
         
-        # 对每个存活的玩家进行反思和印象更新（排除自己）
+        # 对每个存活的玩家进行反思和印象更新（排除自己）- Update opinions of other players
         for player_name in alive_players:
-            # 跳过对自己的反思
+            # 跳过对自己的反思 - Skip self reflection
             if player_name == self.name:
                 continue
             
-            # 获取此前对该玩家的印象
-            previous_opinion = self.opinions.get(player_name, "Don't know this player yet")
+            # 获取此前对该玩家的印象 - Get previous impression
+            previous_opinion = self.opinions.get(player_name, "Don't know this player yet")  # Default if no previous opinion
             
-            # 填充模板
+            # 填充模板 - Format reflection prompt with current context
             prompt = template.format(
-                rules=rules,
-                self_name=self.name,
-                round_base_info=round_base_info,
-                round_action_info=round_action_info,
-                player=player_name,
-                previous_opinion=previous_opinion
+                rules=rules,                     # Game rules for context
+                self_name=self.name,             # Self identifier
+                round_base_info=round_base_info, # Round state
+                round_action_info=round_action_info,  # Actions this round
+                player=player_name,              # Target player
+                previous_opinion=previous_opinion # Previous analysis
             )
             
-            # 向 LLM 请求分析
+            # 向 LLM 请求分析 - Request player analysis from LLM
             messages = [
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt}  # Single message with reflection prompt
             ]
             
             try:
+                # Get LLM's analysis
                 content, _ = self.llm_client.chat(messages, model=self.model_name)
                 
-                # 更新对该玩家的印象
-                self.opinions[player_name] = content.strip()
-                print(f"{self.name} updated opinion of {player_name}")
+                # 更新对该玩家的印象 - Update stored opinion
+                self.opinions[player_name] = content.strip()  # Clean response
+                print(f"{self.name} updated opinion of {player_name}")  # Log update
                 
             except Exception as e:
+                # Log reflection errors but continue with other players
                 print(f"Error while reflecting on player {player_name}: {str(e)}")
