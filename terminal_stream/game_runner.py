@@ -1,84 +1,73 @@
-import os
+"""
+Simple Game Runner for Web Interface
+
+This module provides a simple game runner that can be imported by the web interface.
+"""
+
 import sys
-from stream_handler import init_stream
+import os
+from pathlib import Path
 
-# Get project root directory and add to path
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(root_dir)
-
-# Change working directory to project root for prompt file access
-os.chdir(root_dir)
-
-# Import required modules
-from game import Game
-from json_convert import convert_game_record_to_chinese_text
-import glob
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
 
 def run_game():
-    """Run the game with our stream handler"""
-    init_stream()  # Initialize our output stream
-    
-    print("\n" + "="*50)
-    print("Starting new game session")
-    print("="*50 + "\n")
-
-    # Configure players
-    player_configs = [
-        {
-            "name": "Hearts",
-            "model": "openai/gpt-4o-mini"
-        },
-        {
-            "name": "Spades",
-            "model": "openai/gpt-4o-mini"
-        },
-        {
-            "name": "Diamonds",
-            "model": "openai/gpt-4o-mini"
-        },
-        {
-            "name": "Clubs",
-            "model": "openai/gpt-4o-mini"
-        }
-    ]
-
-    # Configure judges
-    judge_configs = [
-        {
-            "name": "Justice",
-            "model": "openai/gpt-4o-mini"
-        },
-        {
-            "name": "Wisdom",
-            "model": "openai/gpt-4o-mini"
-        }
-    ]
-
-    print("Game started!")
-    print("\nPlayer configurations:")
-    for config in player_configs:
-        print(f"Player: {config['name']}, Using model: {config['model']}")
-    
-    print("\nJudge configurations:")
-    for config in judge_configs:
-        print(f"Judge: {config['name']}, Using model: {config['model']}")
-    print("-" * 50 + "\n")
-
-    # Create and start the game
-    game = Game(player_configs, judge_configs)
-    game.start_game()
-
-    # After game ends, convert and display the latest game record
-    game_records = sorted(glob.glob('game_records/*.json'))
-    if game_records:
-        latest_record = game_records[-1]
-        print("\n" + "="*50)
-        print(f"Converting game record: {latest_record}")
-        print("="*50 + "\n")
+    """Run a simple game for web interface demonstration"""
+    try:
+        print("🎮 Starting Multi-LLM Debate Game")
+        print("=" * 50)
         
-        # Convert and print the game record
-        chinese_text = convert_game_record_to_chinese_text(latest_record)
-        print(chinese_text)
+        # Import game components
+        from game import Game
+        from llm_client import LLMClient
+        from model_config_manager import ModelConfigManager
+        
+        # Initialize components
+        llm_client = LLMClient()
+        model_manager = ModelConfigManager(llm_client)
+        
+        # Create simple configuration
+        player_configs = [
+            {"name": "Alice", "model": "deepseek-r1"},
+            {"name": "Bob", "model": "deepseek-r1"},
+            {"name": "Charlie", "model": "deepseek-r1"},
+            {"name": "Diana", "model": "deepseek-r1"}
+        ]
+
+        judge_configs = [
+            {"name": "Justice", "model": "deepseek-r1"},
+            {"name": "Wisdom", "model": "deepseek-r1"},
+            {"name": "Truth", "model": "deepseek-r1"},
+            {"name": "Honor", "model": "deepseek-r1"}
+        ]
+        
+        print("Creating game with model validation...")
+        
+        # Create and start game
+        game = Game(
+            player_configs=player_configs,
+            judge_configs=judge_configs,
+            model_config_manager=model_manager,
+            enable_human_scoring=False,
+            enable_analytics=True
+        )
+        
+        print("🚀 Game created successfully!")
+        print("Starting game loop...")
+        
+        game.start_game()
+        
+        print("✅ Game completed!")
+        
+    except Exception as e:
+        print(f"❌ Error running game: {e}")
+        import traceback
+        traceback.print_exc()
+
+def run_enhanced_game():
+    """Run enhanced game with web integration"""
+    from enhanced_game_runner import run_enhanced_game as run_enhanced
+    run_enhanced()
 
 if __name__ == "__main__":
     run_game()

@@ -1,0 +1,40 @@
+{
+  "preset_name": "mixed_models_example",
+  "description": "Example configuration with different models (update models as needed)",
+  "player_configs": [
+    {
+      "name": "GPT-Alpha",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "GPT-Beta",
+      "model": "gpt-4o-mini"
+    },
+    {
+      "name": "Claude-Alpha",
+      "model": "claude-3-sonnet"
+    },
+    {
+      "name": "Claude-Beta",
+      "model": "claude-3-haiku"
+    }
+  ],
+  "judge_configs": [
+    {
+      "name": "Justice",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Wisdom",
+      "model": "gpt-4o-mini"
+    },
+    {
+      "name": "Truth",
+      "model": "claude-3-sonnet"
+    },
+    {
+      "name": "Honor",
+      "model": "claude-3-haiku"
+    }
+  ]
+}

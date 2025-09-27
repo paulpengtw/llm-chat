@@ -1,0 +1,40 @@
+{
+    "preset_name": "gpt_vs_claude",
+    "description": "OpenAI GPT models vs Anthropic Claude models head-to-head comparison",
+    "player_configs": [
+        {
+            "name": "GPT-4o",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "GPT-4o-Mini",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Claude-Sonnet",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Claude-Haiku",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Justice",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Wisdom",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Truth",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Honor",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ]
+}

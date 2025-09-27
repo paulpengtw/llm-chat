@@ -1,0 +1,40 @@
+{
+  "preset_name": "single_model_test",
+  "description": "All players and judges use the same model for testing",
+  "player_configs": [
+    {
+      "name": "Player-1",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Player-2",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Player-3",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Player-4",
+      "model": "gpt-4o"
+    }
+  ],
+  "judge_configs": [
+    {
+      "name": "Justice",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Wisdom",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Truth",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "Honor",
+      "model": "gpt-4o"
+    }
+  ]
+}

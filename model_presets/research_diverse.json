@@ -1,0 +1,40 @@
+{
+    "preset_name": "research_diverse",
+    "description": "Diverse model comparison for research - includes different providers and model sizes",
+    "player_configs": [
+        {
+            "name": "GPT-Large",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Claude-Large",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "GPT-Small",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Claude-Small",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Neutral-Judge-1",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Neutral-Judge-2",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Neutral-Judge-3",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Neutral-Judge-4",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ]
+}

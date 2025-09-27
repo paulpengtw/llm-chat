@@ -1,0 +1,40 @@
+{
+    "preset_name": "size_comparison",
+    "description": "Compare large vs small models from same providers",
+    "player_configs": [
+        {
+            "name": "GPT-Large",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "GPT-Small",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Claude-Large",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Claude-Small",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Large-Judge-1",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Large-Judge-2",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Small-Judge-1",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Small-Judge-2",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ]
+}

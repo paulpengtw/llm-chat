@@ -1,8 +1,9 @@
 import random
 import json
 import re
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 from llm_client import LLMClient
+from error_handling import ModelFailureHandler, GracefulDegradationManager, ModelFailureException
 
 RULE_BASE_PATH = "prompt/rule_base.txt"
 PLAY_CARD_PROMPT_TEMPLATE_PATH = "prompt/play_card_prompt_template.txt"
@@ -10,12 +11,16 @@ CHALLENGE_PROMPT_TEMPLATE_PATH = "prompt/challenge_prompt_template.txt"
 REFLECT_PROMPT_TEMPLATE_PATH = "prompt/reflect_prompt_template.txt"
 
 class Player:
-    def __init__(self, name: str, model_name: str):
+    def __init__(self, name: str, model_name: str, 
+                 failure_handler: Optional[ModelFailureHandler] = None,
+                 degradation_manager: Optional[GracefulDegradationManager] = None):
         """初始化玩家
         
         Args:
             name: 玩家名称
             model_name: 使用的 LLM 模型名称
+            failure_handler: 可选的模型失败处理器
+            degradation_manager: 可选的优雅降级管理器
         """
         self.name = name
         self.hand = []
@@ -23,6 +28,10 @@ class Player:
         # LLM 相关初始化
         self.llm_client = LLMClient()
         self.model_name = model_name
+        
+        # Error handling components
+        self.failure_handler = failure_handler
+        self.degradation_manager = degradation_manager
 
     def _read_file(self, filepath: str) -> str:
         """读取文件内容"""
@@ -35,7 +44,7 @@ class Player:
 
     def print_status(self) -> None:
         """打印玩家状态"""
-        print(f"{self.name} - Cards: {', '.join(self.hand)}")
+        print(f"{self.name} ({self.model_name}) - Cards: {', '.join(self.hand)}")
         
     def init_opinions(self, other_players: List["Player"]) -> None:
         """初始化对其他玩家的看法
@@ -52,7 +61,7 @@ class Player:
     def choose_cards_to_play(self,
                         round_base_info: str,
                         round_action_info: str,
-                        play_decision_info: str) -> Dict:
+                        play_decision_info: str) -> Tuple[Dict, str]:
         """
         玩家选择出牌
         
@@ -83,74 +92,154 @@ class Player:
             current_cards=current_cards      # Player's available cards
         )
         
-        # 尝试获取有效的 JSON 响应，最多重试五次 - Retry mechanism for handling API failures
-        for attempt in range(5):
-            # 每次都发送相同的原始 prompt - Create message for LLM API
-            messages = [
-                {"role": "user", "content": prompt}  # Single message with formatted prompt
-            ]
+        # Create message for LLM API
+        messages = [{"role": "user", "content": prompt}]
+        
+        try:
+            # Use failure handler if available, otherwise fall back to direct client call
+            if self.failure_handler:
+                # Use timeout from degradation manager if available
+                timeout = None
+                if self.degradation_manager:
+                    timeout = self.degradation_manager.default_timeout
+                
+                content, reasoning_content = self.failure_handler.call_with_retry(
+                    model_name=self.model_name,
+                    messages=messages,
+                    player_name=self.name,
+                    timeout=timeout
+                )
+            else:
+                # Fallback to original retry logic for backward compatibility
+                content, reasoning_content = self._legacy_retry_call(messages)
             
+            # Parse and validate the response
+            result = self._parse_play_response(content)
+            if result:
+                # 从手牌中移除已出的牌 - Remove played cards from hand
+                for card in result["played_cards"]:
+                    self.hand.remove(card)
+                return result, reasoning_content
+            
+            # If parsing failed, use degradation if available
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, ValueError("Failed to parse valid response")
+                )
+                fallback_response = degradation_result["fallback_response"]["play_response"]
+                
+                # Apply fallback response
+                self._apply_fallback_play(fallback_response)
+                return fallback_response, "Fallback response due to parsing failure"
+            
+            raise RuntimeError(f"Player {self.name}'s choose_cards_to_play method failed - no valid response")
+            
+        except ModelFailureException as e:
+            # Handle complete model failure with graceful degradation
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, e
+                )
+                fallback_response = degradation_result["fallback_response"]["play_response"]
+                
+                print(f"⚠️  {self.name} using fallback strategy due to model failure")
+                self._apply_fallback_play(fallback_response)
+                return fallback_response, "Fallback response due to model failure"
+            else:
+                raise RuntimeError(f"Player {self.name}'s model failed and no degradation manager available") from e
+        
+        except Exception as e:
+            # Handle unexpected errors
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, e
+                )
+                fallback_response = degradation_result["fallback_response"]["play_response"]
+                
+                print(f"⚠️  {self.name} using fallback strategy due to unexpected error")
+                self._apply_fallback_play(fallback_response)
+                return fallback_response, f"Fallback response due to error: {str(e)}"
+            else:
+                raise RuntimeError(f"Player {self.name}'s choose_cards_to_play method failed: {str(e)}") from e
+    
+    def _legacy_retry_call(self, messages: List[Dict]) -> Tuple[str, str]:
+        """Legacy retry logic for backward compatibility"""
+        for attempt in range(5):
             try:
-                # DEBUG OUTPUT
-                # Purpose: This debug section helps diagnose LLM response validation issues
-                # It shows:
-                # 1. What prompt was sent to the LLM
-                # 2. What response was received
-                # 3. Whether the response has valid JSON structure
-                # 4. If cards being played are valid (in hand and within 1-3 count limit)
-                # Uncomment below lines when debugging is needed
-                """
-                print(f"\n=== DEBUG: Attempt {attempt+1} for {self.name} ===")
-                print(f"Prompt being sent:\n{prompt}")
-                """
-                
-                # Make API call to LLM
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
-                
-                """
-                print(f"\nRaw LLM Response:\n{content}")
-                """
-                
-                # 尝试从内容中提取 JSON 部分 - Extract JSON from potentially multi-line response
-                json_match = re.search(r'({[\s\S]*})', content)  # Regex matches JSON across lines
-                if json_match:
-                    json_str = json_match.group(1)  # Get the JSON string
-                    result = json.loads(json_str)   # Parse JSON into dict
-                    
-                    # 验证 JSON 格式是否符合要求 - Validate response structure
-                    has_required_keys = all(key in result for key in ["played_cards", "behavior", "talk", "play_reason"])
-                    if has_required_keys:
-                        # 确保 played_cards 是列表 - Convert single card to list if needed
-                        if not isinstance(result["played_cards"], list):
-                            result["played_cards"] = [result["played_cards"]]  # Wrap single card in list
-                        
-                        # 确保选出的牌是有效的（从手牌中选择 1-3 张）- Validate card selection
-                        valid_cards = all(card in self.hand for card in result["played_cards"])  # All cards must be in hand
-                        valid_count = 1 <= len(result["played_cards"]) <= 3  # Must play 1-3 cards
-                        
-                        if valid_cards and valid_count:
-                            # 从手牌中移除已出的牌 - Remove played cards from hand
-                            for card in result["played_cards"]:
-                                self.hand.remove(card)  # Update player's hand
-                            return result, reasoning_content  # Return decision and LLM reasoning
-                    else:
-                        print("- Missing required keys in response")
-                                
+                if content.strip():
+                    return content, reasoning_content
+                else:
+                    raise ValueError("Empty response from model")
             except Exception as e:
-                # 仅记录错误，不修改重试请求
-                """
-                print(f"Attempt {attempt+1} parsing failed with error: {str(e)}")
-                import traceback
-                print(f"Full error traceback:\n{traceback.format_exc()}")
-                """
-        raise RuntimeError(f"Player {self.name}'s choose_cards_to_play method failed after multiple attempts")
+                if attempt == 4:  # Last attempt
+                    raise e
+                # Simple delay between retries
+                import time
+                time.sleep(1.0 * (attempt + 1))
+        
+        raise RuntimeError("Legacy retry failed")
+    
+    def _parse_play_response(self, content: str) -> Optional[Dict]:
+        """Parse and validate play response from LLM"""
+        try:
+            # 尝试从内容中提取 JSON 部分 - Extract JSON from potentially multi-line response
+            json_match = re.search(r'({[\s\S]*})', content)
+            if not json_match:
+                return None
+            
+            json_str = json_match.group(1)
+            result = json.loads(json_str)
+            
+            # 验证 JSON 格式是否符合要求 - Validate response structure
+            required_keys = ["played_cards", "behavior", "talk", "play_reason"]
+            if not all(key in result for key in required_keys):
+                return None
+            
+            # 确保 played_cards 是列表 - Convert single card to list if needed
+            if not isinstance(result["played_cards"], list):
+                result["played_cards"] = [result["played_cards"]]
+            
+            # 确保选出的牌是有效的（从手牌中选择 1-3 张）- Validate card selection
+            valid_cards = all(card in self.hand for card in result["played_cards"])
+            valid_count = 1 <= len(result["played_cards"]) <= 3
+            
+            if valid_cards and valid_count:
+                return result
+            
+            return None
+            
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
+    
+    def _apply_fallback_play(self, fallback_response: Dict) -> None:
+        """Apply fallback play response, ensuring cards are available"""
+        # Ensure we have cards to play
+        if not self.hand:
+            return
+        
+        # Adjust fallback to available cards
+        available_cards = fallback_response["played_cards"]
+        valid_cards = [card for card in available_cards if card in self.hand]
+        
+        if not valid_cards:
+            # If no valid cards in fallback, play first available card
+            valid_cards = [self.hand[0]]
+        
+        # Remove cards from hand
+        for card in valid_cards:
+            if card in self.hand:
+                self.hand.remove(card)
+        
+        # Update the response with actually played cards
+        fallback_response["played_cards"] = valid_cards
 
     def decide_challenge(self,
                         round_base_info: str,
                         round_action_info: str,
                         challenge_decision_info: str,
                         challenged_player_performance: str,
-                        extra_hint: str) -> bool:
+                        extra_hint: str) -> Tuple[Dict, str]:
         """
         玩家决定是否对上一位玩家的出牌进行质疑
         
@@ -197,33 +286,92 @@ class Player:
             extra_hint=extra_hint           # Any additional strategic hints
         )
         
-        # 尝试获取有效的 JSON 响应，最多重试五次
-        for attempt in range(5):
-            # 每次都发送相同的原始 prompt
-            messages = [
-                {"role": "user", "content": prompt}
-            ]
+        # Create message for LLM API
+        messages = [{"role": "user", "content": prompt}]
+        
+        try:
+            # Use failure handler if available, otherwise fall back to direct client call
+            if self.failure_handler:
+                # Use timeout from degradation manager if available
+                timeout = None
+                if self.degradation_manager:
+                    timeout = self.degradation_manager.default_timeout
+                
+                content, reasoning_content = self.failure_handler.call_with_retry(
+                    model_name=self.model_name,
+                    messages=messages,
+                    player_name=self.name,
+                    timeout=timeout
+                )
+            else:
+                # Fallback to original retry logic for backward compatibility
+                content, reasoning_content = self._legacy_retry_call(messages)
             
-            try:
-                # Make API call and get response
-                content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
+            # Parse and validate the response
+            result = self._parse_challenge_response(content)
+            if result:
+                return result, reasoning_content
+            
+            # If parsing failed, use degradation if available
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, ValueError("Failed to parse valid challenge response")
+                )
+                fallback_response = degradation_result["fallback_response"]["challenge_response"]
+                return fallback_response, "Fallback response due to parsing failure"
+            
+            raise RuntimeError(f"Player {self.name}'s decide_challenge method failed - no valid response")
+            
+        except ModelFailureException as e:
+            # Handle complete model failure with graceful degradation
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, e
+                )
+                fallback_response = degradation_result["fallback_response"]["challenge_response"]
                 
-                # 解析 JSON 响应 - Extract JSON from LLM response
-                json_match = re.search(r'({[\s\S]*})', content)  # Match JSON across lines
-                if json_match:
-                    json_str = json_match.group(1)  # Extract matched JSON
-                    result = json.loads(json_str)   # Parse into dictionary
-                    
-                    # 验证 JSON 格式是否符合要求 - Validate response format
-                    if all(key in result for key in ["was_challenged", "challenge_reason"]):
-                        # 确保 was_challenged 是布尔值 - Ensure boolean challenge decision
-                        if isinstance(result["was_challenged"], bool):
-                            return result, reasoning_content  # Return decision and reasoning
+                print(f"⚠️  {self.name} using fallback challenge decision due to model failure")
+                return fallback_response, "Fallback response due to model failure"
+            else:
+                raise RuntimeError(f"Player {self.name}'s model failed and no degradation manager available") from e
+        
+        except Exception as e:
+            # Handle unexpected errors
+            if self.degradation_manager:
+                degradation_result = self.degradation_manager.handle_player_model_failure(
+                    self.name, self.model_name, e
+                )
+                fallback_response = degradation_result["fallback_response"]["challenge_response"]
                 
-            except Exception as e:
-                # 仅记录错误，不修改重试请求
-                print(f"Attempt {attempt+1} parsing failed: {str(e)}")
-        raise RuntimeError(f"Player {self.name}'s decide_challenge method failed after multiple attempts")
+                print(f"⚠️  {self.name} using fallback challenge decision due to unexpected error")
+                return fallback_response, f"Fallback response due to error: {str(e)}"
+            else:
+                raise RuntimeError(f"Player {self.name}'s decide_challenge method failed: {str(e)}") from e
+    
+    def _parse_challenge_response(self, content: str) -> Optional[Dict]:
+        """Parse and validate challenge response from LLM"""
+        try:
+            # 解析 JSON 响应 - Extract JSON from LLM response
+            json_match = re.search(r'({[\s\S]*})', content)
+            if not json_match:
+                return None
+            
+            json_str = json_match.group(1)
+            result = json.loads(json_str)
+            
+            # 验证 JSON 格式是否符合要求 - Validate response format
+            required_keys = ["was_challenged", "challenge_reason"]
+            if not all(key in result for key in required_keys):
+                return None
+            
+            # 确保 was_challenged 是布尔值 - Ensure boolean challenge decision
+            if isinstance(result["was_challenged"], bool):
+                return result
+            
+            return None
+            
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
 
     def reflect(self, alive_players: List[str], round_base_info: str, round_action_info: str) -> None:
         """
@@ -260,18 +408,34 @@ class Player:
             )
             
             # 向 LLM 请求分析 - Request player analysis from LLM
-            messages = [
-                {"role": "user", "content": prompt}  # Single message with reflection prompt
-            ]
+            messages = [{"role": "user", "content": prompt}]
             
             try:
-                # Get LLM's analysis
-                content, _ = self.llm_client.chat(messages, model=self.model_name)
+                # Use failure handler if available for reflection
+                if self.failure_handler:
+                    content, _ = self.failure_handler.call_with_retry(
+                        model_name=self.model_name,
+                        messages=messages,
+                        player_name=self.name
+                    )
+                else:
+                    # Fallback to direct client call
+                    content, _ = self.llm_client.chat(messages, model=self.model_name)
                 
                 # 更新对该玩家的印象 - Update stored opinion
-                self.opinions[player_name] = content.strip()  # Clean response
-                print(f"{self.name} updated opinion of {player_name}")  # Log update
+                if content.strip():
+                    self.opinions[player_name] = content.strip()
+                    print(f"{self.name} updated opinion of {player_name}")
+                else:
+                    print(f"{self.name} received empty reflection for {player_name}, keeping previous opinion")
+                
+            except ModelFailureException as e:
+                # For reflection failures, we can continue without updating opinions
+                print(f"⚠️  {self.name} failed to reflect on {player_name} due to model failure, keeping previous opinion")
+                if self.degradation_manager:
+                    self.degradation_manager.handle_player_model_failure(self.name, self.model_name, e)
                 
             except Exception as e:
                 # Log reflection errors but continue with other players
-                print(f"Error while reflecting on player {player_name}: {str(e)}")
+                print(f"Error while {self.name} reflecting on player {player_name}: {str(e)}")
+                # Keep the previous opinion in case of error

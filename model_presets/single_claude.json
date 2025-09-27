@@ -1,0 +1,40 @@
+{
+    "preset_name": "single_claude",
+    "description": "All players and judges use Claude-3.5-Sonnet for baseline testing",
+    "player_configs": [
+        {
+            "name": "Alpha",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Beta",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Gamma",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Delta",
+            "model": "anthropic/claude-3-5-sonnet"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Justice",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Wisdom",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Truth",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Honor",
+            "model": "anthropic/claude-3-5-sonnet"
+        }
+    ]
+}

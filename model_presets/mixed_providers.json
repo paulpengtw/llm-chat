@@ -1,0 +1,40 @@
+{
+    "preset_name": "mixed_providers",
+    "description": "Mixed provider configuration with OpenAI, Anthropic, and other models",
+    "player_configs": [
+        {
+            "name": "OpenAI-Player",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Anthropic-Player",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "OpenAI-Mini",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Anthropic-Haiku",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "OpenAI-Judge",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Anthropic-Judge",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Mixed-Judge-1",
+            "model": "openai/gpt-4o-mini"
+        },
+        {
+            "name": "Mixed-Judge-2",
+            "model": "anthropic/claude-3-haiku"
+        }
+    ]
+}

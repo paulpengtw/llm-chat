@@ -1,0 +1,40 @@
+{
+    "preset_name": "research_extended",
+    "description": "Extended research configuration with additional model options (update model names as needed)",
+    "player_configs": [
+        {
+            "name": "GPT-4o",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Claude-Sonnet",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "DeepSeek-R1",
+            "model": "deepseek/deepseek-r1"
+        },
+        {
+            "name": "GPT-4o-Mini",
+            "model": "openai/gpt-4o-mini"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Primary-Judge",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Secondary-Judge",
+            "model": "anthropic/claude-3-5-sonnet"
+        },
+        {
+            "name": "Alternative-Judge",
+            "model": "deepseek/deepseek-r1"
+        },
+        {
+            "name": "Efficient-Judge",
+            "model": "openai/gpt-4o-mini"
+        }
+    ]
+}

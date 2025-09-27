@@ -1,0 +1,40 @@
+{
+    "preset_name": "single_gpt4o",
+    "description": "All players and judges use GPT-4o for baseline testing",
+    "player_configs": [
+        {
+            "name": "Alpha",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Beta",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Gamma",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Delta",
+            "model": "openai/gpt-4o"
+        }
+    ],
+    "judge_configs": [
+        {
+            "name": "Justice",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Wisdom",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Truth",
+            "model": "openai/gpt-4o"
+        },
+        {
+            "name": "Honor",
+            "model": "openai/gpt-4o"
+        }
+    ]
+}
